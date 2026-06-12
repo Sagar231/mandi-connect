@@ -1,0 +1,35 @@
+<header class="bg-white/90 backdrop-blur border-b sticky top-0 z-40">
+  <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 font-extrabold text-xl text-mandi-700">
+      <span class="text-2xl">🥬</span> MandiConnect
+    </a>
+    <nav class="flex items-center gap-1 sm:gap-4 text-sm font-medium">
+      <a href="/" class="px-2 py-1 rounded hover:text-mandi-700 hover:bg-mandi-50">Markets</a>
+      <a href="/compare/" class="px-2 py-1 rounded hover:text-mandi-700 hover:bg-mandi-50">Compare</a>
+      <span id="nav-auth" class="flex items-center gap-2"></span>
+    </nav>
+  </div>
+</header>
+<script>
+  $(function(){
+    function render(){
+      const u=MC.store.user, el=$("#nav-auth");
+      if(MC.isAuthed() && u){
+        let extra="";
+        if(u.role==="vendor") extra+='<a href="/dashboard/" class="px-2 py-1 rounded hover:text-mandi-700 hover:bg-mandi-50">Dashboard</a>';
+        extra+='<a href="/favorites/" class="px-2 py-1 rounded hover:text-mandi-700 hover:bg-mandi-50 hidden sm:inline">Favorites</a>';
+        extra+='<a href="/alerts/" class="px-2 py-1 rounded hover:text-mandi-700 hover:bg-mandi-50 hidden sm:inline">Alerts</a>';
+        el.html(extra+
+          '<span class="text-gray-400 hidden md:inline text-xs px-2">'+u.email+'</span>'+
+          '<button id="logout-btn" class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">Logout</button>');
+        $("#logout-btn").on("click",function(){ MC.logout(); setTimeout(()=>location.href="/",200); });
+      }else{
+        el.html(
+          '<a href="/sell/" class="px-2 py-1 rounded hover:text-mandi-700 hover:bg-mandi-50">Sell on MandiConnect</a>'+
+          '<a href="/login/" class="px-3 py-1.5 rounded-lg hover:bg-gray-100">Login</a>'+
+          '<a href="/register/" class="px-3 py-1.5 rounded-lg bg-mandi-600 text-white hover:bg-mandi-700">Shop produce</a>');
+      }
+    }
+    (function wait(){ window.MC?render():setTimeout(wait,30); })();
+  });
+</script>

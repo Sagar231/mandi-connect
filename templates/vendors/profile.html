@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Vendor — MandiConnect{% endblock %}
+{% block content %}
+<!-- Banner -->
+<section class="relative h-48 sm:h-56">
+  <img id="vendor-banner" src="https://placehold.co/1600x400/dcfce7/15803d?text=Shop" onerror="imgFallback(this)" class="absolute inset-0 w-full h-full object-cover" />
+  <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-black/10"></div>
+</section>
+<div class="max-w-6xl mx-auto px-4">
+  <div id="vendor-head" class="-mt-12 relative bg-white rounded-2xl shadow-card p-5 mb-8"></div>
+
+  <div class="grid gap-8 lg:grid-cols-2">
+    <div>
+      <h2 class="font-bold text-lg mb-3">Current listings</h2>
+      <div class="bg-white rounded-2xl shadow-card overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-left text-gray-500"><tr><th class="p-3">Product</th><th class="p-3">Price</th><th class="p-3">Stock</th></tr></thead>
+          <tbody id="listings-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-bold text-lg">Price trend (30d)</h2>
+        <select id="trend-product" class="border rounded-xl px-2 py-1 text-sm"></select>
+      </div>
+      <div class="bg-white rounded-2xl shadow-card p-4"><canvas id="trend-chart" height="170"></canvas></div>
+    </div>
+  </div>
+
+  <div class="mt-10 mb-8">
+    <h2 class="font-bold text-lg mb-3">Reviews</h2>
+    <div id="add-review" class="hidden bg-white rounded-2xl shadow-card p-4 mb-4">
+      <div class="flex flex-col sm:flex-row gap-2">
+        <select id="review-rating" class="border rounded-xl px-3 py-2"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select>
+        <input id="review-comment" class="flex-1 border rounded-xl px-3 py-2" placeholder="Share your experience…" />
+        <button id="review-submit" class="px-5 py-2 bg-mandi-600 text-white rounded-xl hover:bg-mandi-700">Post</button>
+      </div>
+    </div>
+    <div id="reviews-list" class="grid gap-3 sm:grid-cols-2"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  const id={{ vendor_id }}; let chart=null;
+  function loadVendor(){
+    MC.get("/vendors/"+id+"/").then(function(v){
+      if(v.cover) $("#vendor-banner").attr("src",v.cover);
+      const fav=MC.isAuthed()?'<button id="fav-btn" class="px-4 py-2 text-sm bg-mandi-50 text-mandi-700 rounded-xl hover:bg-mandi-100">♥ Favorite</button>':'';
+      const verified=v.is_verified?'<span class="text-xs bg-mandi-100 text-mandi-700 px-2 py-0.5 rounded-full">✓ Verified</span>':'';
+      $("#vendor-head").html(
+        '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">'+
+        '<div><div class="flex items-center gap-2"><h1 class="text-2xl font-extrabold">'+v.shop_name+'</h1>'+verified+'</div>'+
+        '<p class="text-gray-500 mt-1">📍 '+(v.market_detail?v.market_detail.name+", "+v.market_detail.city:"")+
+        (v.category_detail?'  •  '+v.category_detail.name:"")+'</p>'+
+        '<p class="text-sm text-gray-500 mt-1">'+(v.description||"")+'</p>'+
+        '<p class="text-amber-500 mt-2">★ '+Number(v.avg_rating).toFixed(1)+' <span class="text-gray-400 text-sm">('+v.ratings_count+' reviews)</span></p></div>'+
+        fav+'</div>');
+      $("#fav-btn").on("click",()=>MC.post("/favorites/",{vendor:id}).then(()=>toast("Added to favorites.")).catch(xhr=>toast(MC.errText(xhr),false)));
+    });
+  }
+  function loadListings(){
+    MC.get("/price-listings/?vendor="+id+"&is_active=true").then(function(res){
+      const items=res.results||res;
+      $("#listings-body").html(items.map(function(l){
+        const img=l.product_detail.cover||"";
+        const ic=img?'<img src="'+img+'" onerror="imgFallback(this)" class="w-7 h-7 object-contain inline-block mr-2 align-middle" />':'';
+        return '<tr><td class="p-3">'+ic+l.product_detail.name+'</td><td class="p-3 font-bold text-mandi-700">₹'+l.price+'</td><td class="p-3">'+l.stock_display+'</td></tr>';
+      }).join("")||'<tr><td colspan="3" class="p-3 text-gray-400">No active listings.</td></tr>');
+      const seen={}, opts=items.filter(l=>{ if(seen[l.product])return false; seen[l.product]=1; return true; })
+        .map(l=>'<option value="'+l.product+'">'+l.product_detail.name+'</option>');
+      $("#trend-product").html(opts.join(""));
+      if(items.length) loadTrend(items[0].product);
+    });
+  }
+  function loadTrend(pid){
+    MC.get("/price-trend/?product="+pid+"&days=30").then(function(points){
+      const labels=points.map(p=>p.date), data=points.map(p=>p.avg_price);
+      if(chart) chart.destroy();
+      chart=new Chart($("#trend-chart"),{ type:"line",
+        data:{labels:labels,datasets:[{label:"Avg ₹",data:data,borderColor:"#16a34a",backgroundColor:"rgba(22,163,74,.12)",fill:true,tension:.35,pointRadius:0}]},
+        options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}} });
+    });
+  }
+  function loadReviews(){
+    MC.get("/reviews/?vendor="+id).then(function(res){
+      const items=res.results||res;
+      $("#reviews-list").html(items.map(r=>'<div class="bg-white rounded-2xl shadow-card p-4"><div class="text-amber-500">'+"★".repeat(r.rating)+'<span class="text-gray-200">'+"★".repeat(5-r.rating)+'</span></div><p class="text-sm mt-1">'+(r.comment||"")+'</p><p class="text-xs text-gray-400 mt-2">'+r.user_email+'</p></div>').join("")||'<p class="text-gray-400">No reviews yet.</p>');
+    });
+    if(MC.isAuthed()){
+      $("#add-review").removeClass("hidden");
+      $("#review-submit").off("click").on("click",function(){
+        MC.post("/reviews/",{vendor:id,rating:$("#review-rating").val(),comment:$("#review-comment").val()})
+          .then(()=>{ toast("Review posted."); $("#review-comment").val(""); loadReviews(); loadVendor(); }).catch(xhr=>toast(MC.errText(xhr),false));
+      });
+    }
+  }
+  $("#trend-product").on("change",function(){ loadTrend($(this).val()); });
+  (function wait(){ if(!window.MC||!window.Chart) return setTimeout(wait,30); loadVendor(); loadListings(); loadReviews(); })();
+});
+</script>
+{% endblock %}

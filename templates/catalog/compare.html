@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Compare prices — MandiConnect{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-1">Compare produce prices</h1>
+  <p class="text-gray-500 text-sm mb-5">Find the cheapest verified vendor for any product.</p>
+
+  <div class="bg-white rounded-2xl shadow-card p-4 mb-6 grid gap-3 sm:grid-cols-4">
+    <div class="sm:col-span-2">
+      <label class="block text-xs text-gray-500 mb-1">Product</label>
+      <select id="product-sel" class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-mandi-500"></select>
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">Market (optional)</label>
+      <select id="market-sel" class="w-full border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-mandi-500"><option value="">All markets</option></select>
+    </div>
+    <div class="flex items-end">
+      <button id="compare-btn" class="w-full px-4 py-2.5 bg-mandi-600 text-white rounded-xl font-medium hover:bg-mandi-700">Compare</button>
+    </div>
+  </div>
+
+  <div id="product-hero" class="hidden items-center gap-4 mb-5"></div>
+
+  <div id="result" class="hidden">
+    <div class="overflow-x-auto bg-white rounded-2xl shadow-card">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-left text-gray-500">
+          <tr><th class="p-3">#</th><th class="p-3">Vendor</th><th class="p-3">Market</th><th class="p-3">Price</th><th class="p-3">Stock</th><th class="p-3">Rating</th></tr>
+        </thead>
+        <tbody id="compare-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <p id="result-empty" class="hidden text-gray-500 py-6">No active listings for this product.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  let products=[];
+  const qp=new URLSearchParams(location.search);
+  function fill(sel,items,label){ sel.append(items.map(i=>'<option value="'+i.id+'">'+label(i)+'</option>').join("")); }
+  function loadOptions(){
+    const pPath="/products/?ordering=name"+(qp.get("category")?"&category="+qp.get("category"):"");
+    return $.when(
+      MC.get(pPath).then(r=>{ products=r.results||r; fill($("#product-sel"),products,p=>p.name+" ("+p.unit+")"); }),
+      MC.get("/markets/?ordering=name").then(r=>fill($("#market-sel"),r.results||r,m=>m.name+" — "+m.city))
+    );
+  }
+  function badge(s){
+    const map={in_stock:"bg-mandi-50 text-mandi-700",low:"bg-amber-50 text-amber-700",out:"bg-red-50 text-red-700"};
+    const lbl={in_stock:"In stock",low:"Low",out:"Out"};
+    return '<span class="text-xs px-2 py-1 rounded-full '+(map[s]||"")+'">'+(lbl[s]||s)+'</span>';
+  }
+  function showHero(pid){
+    const p=products.find(x=>String(x.id)===String(pid));
+    if(!p){ $("#product-hero").addClass("hidden"); return; }
+    const img=p.cover||"https://placehold.co/120x120/dcfce7/15803d?text="+encodeURIComponent(p.name);
+    $("#product-hero").removeClass("hidden").addClass("flex").html(
+      '<img src="'+img+'" onerror="imgFallback(this)" class="w-16 h-16 object-contain rounded-xl bg-mandi-50 p-1" />'+
+      '<div><div class="font-semibold text-lg">'+p.name+'</div><div class="text-sm text-gray-400">'+(p.category_detail?p.category_detail.name:"")+' • per '+p.unit+'</div></div>');
+  }
+  function compare(){
+    const pid=$("#product-sel").val(), mid=$("#market-sel").val();
+    if(!pid) return toast("Pick a product first.",false);
+    showHero(pid);
+    MC.get("/compare/?product="+pid+(mid?"&market="+mid:"")).then(function(rows){
+      if(!rows.length){ $("#result").addClass("hidden"); $("#result-empty").removeClass("hidden"); return; }
+      $("#result-empty").addClass("hidden"); $("#result").removeClass("hidden");
+      $("#compare-body").html(rows.map(function(r,i){
+        const cheap=i===0?' class="bg-mandi-50"':"";
+        const tag=i===0?'<span class="ml-2 text-xs bg-mandi-600 text-white px-2 py-0.5 rounded-full">Cheapest</span>':"";
+        return '<tr'+cheap+'><td class="p-3">'+(i+1)+'</td>'+
+          '<td class="p-3"><a class="font-medium hover:text-mandi-700" href="/vendors/'+r.vendor_id+'/">'+r.shop_name+'</a>'+tag+'</td>'+
+          '<td class="p-3 text-gray-500">'+r.market+'</td>'+
+          '<td class="p-3 font-bold text-mandi-700">₹'+r.price+'</td>'+
+          '<td class="p-3">'+badge(r.stock_status)+'</td>'+
+          '<td class="p-3 text-amber-500">★ '+Number(r.avg_rating).toFixed(1)+'</td></tr>';
+      }).join(""));
+    }).catch(xhr=>toast(MC.errText(xhr),false));
+  }
+  $("#compare-btn").on("click",compare);
+  $("#product-sel").on("change",function(){ showHero($(this).val()); });
+  (function wait(){ if(!window.MC) return setTimeout(wait,30);
+    loadOptions().then(function(){
+      if(qp.get("product")){ $("#product-sel").val(qp.get("product")); }
+      if(qp.get("market")){ $("#market-sel").val(qp.get("market")); }
+      if(qp.get("product")) compare();
+    });
+  })();
+});
+</script>
+{% endblock %}

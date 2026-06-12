@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}MandiConnect — Compare live mandi prices{% endblock %}
+{% block content %}
+<!-- Hero -->
+<section class="relative">
+  <div class="absolute inset-0">
+    <img src="https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=1600&q=80" onerror="imgFallback(this)"
+         class="w-full h-full object-cover" alt="Fresh produce market" />
+    <div class="absolute inset-0 bg-gradient-to-r from-mandi-900/90 via-mandi-800/70 to-mandi-700/40"></div>
+  </div>
+  <div class="relative max-w-6xl mx-auto px-4 py-20 sm:py-28">
+    <span class="inline-block bg-white/15 text-white text-xs font-medium px-3 py-1 rounded-full mb-4 backdrop-blur">🌿 Fresh from your local mandi</span>
+    <h1 class="text-4xl sm:text-5xl font-extrabold text-white leading-tight max-w-2xl">Compare live vendor prices for fresh produce.</h1>
+    <p class="text-mandi-50/90 mt-4 max-w-xl text-lg">Browse mandis across the city, see who's selling what today, and find the best price — before you leave home.</p>
+    <div class="mt-8 flex flex-col sm:flex-row gap-3 max-w-xl">
+      <div class="flex-1 flex bg-white rounded-xl overflow-hidden shadow-lift">
+        <input id="city-search" placeholder="Search markets by name, city or area…" class="flex-1 px-4 py-3 focus:outline-none" />
+        <button id="search-btn" class="px-5 bg-mandi-600 text-white font-medium hover:bg-mandi-700">Search</button>
+      </div>
+    </div>
+    <div class="mt-6 flex gap-6 text-white/90 text-sm">
+      <div><span id="stat-markets" class="font-bold text-xl">—</span><br/>Markets</div>
+      <div><span id="stat-vendors" class="font-bold text-xl">—</span><br/>Verified vendors</div>
+      <div><span id="stat-products" class="font-bold text-xl">—</span><br/>Products tracked</div>
+    </div>
+  </div>
+</section>
+
+<div class="max-w-6xl mx-auto px-4">
+  <!-- Categories -->
+  <section class="-mt-8 relative z-10">
+    <div id="cat-strip" class="flex gap-3 overflow-x-auto pb-2"></div>
+  </section>
+
+  <!-- Markets -->
+  <section class="mt-10">
+    <div class="flex items-end justify-between mb-4">
+      <div><h2 class="text-2xl font-bold">Explore markets</h2><p class="text-gray-500 text-sm">Pick a mandi to see its vendors and today's prices.</p></div>
+    </div>
+    <div id="markets-grid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="skeleton h-64 rounded-2xl"></div><div class="skeleton h-64 rounded-2xl"></div><div class="skeleton h-64 rounded-2xl"></div>
+    </div>
+    <p id="markets-empty" class="hidden text-gray-500 py-8 text-center">No markets found. Try another search.</p>
+  </section>
+
+  <!-- How it works -->
+  <section class="mt-16">
+    <h2 class="text-2xl font-bold text-center mb-8">How MandiConnect works</h2>
+    <div class="grid gap-6 sm:grid-cols-3">
+      <div class="bg-white rounded-2xl shadow-card p-6 text-center">
+        <div class="text-3xl mb-3">🔎</div><h3 class="font-semibold mb-1">Browse markets</h3>
+        <p class="text-gray-500 text-sm">Find mandis near you and see every verified vendor in one place.</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow-card p-6 text-center">
+        <div class="text-3xl mb-3">⚖️</div><h3 class="font-semibold mb-1">Compare prices</h3>
+        <p class="text-gray-500 text-sm">See the cheapest vendor for any product, with live stock status and ratings.</p>
+      </div>
+      <div class="bg-white rounded-2xl shadow-card p-6 text-center">
+        <div class="text-3xl mb-3">🔔</div><h3 class="font-semibold mb-1">Track & get alerts</h3>
+        <p class="text-gray-500 text-sm">Favorite vendors and set price alerts — we'll email you when prices drop.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Vendor CTA -->
+  <section class="mt-16 mb-8 rounded-3xl overflow-hidden relative">
+    <img src="https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=1600&q=80" onerror="imgFallback(this)" class="absolute inset-0 w-full h-full object-cover" alt="Vendor stall" />
+    <div class="absolute inset-0 bg-mandi-900/80"></div>
+    <div class="relative px-8 py-12 sm:flex items-center justify-between">
+      <div class="max-w-lg">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white">Run a shop in the mandi?</h2>
+        <p class="text-mandi-50/90 mt-2">List your shop, update your daily prices, and reach customers searching for the best deal. Free to join.</p>
+      </div>
+      <a href="/sell/" class="inline-block mt-5 sm:mt-0 px-6 py-3 bg-white text-mandi-700 font-semibold rounded-xl hover:bg-mandi-50">Sell on MandiConnect →</a>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  function marketCard(m){
+    const img = m.cover || "https://placehold.co/600x400/dcfce7/15803d?text=" + encodeURIComponent(m.name);
+    return '<a href="/markets/'+m.id+'/" class="group block bg-white rounded-2xl shadow-card hover:shadow-lift transition overflow-hidden">'+
+      '<div class="h-40 overflow-hidden"><img src="'+img+'" onerror="imgFallback(this)" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" /></div>'+
+      '<div class="p-4">'+
+      '<div class="flex items-center justify-between"><h3 class="font-semibold text-lg">'+m.name+'</h3>'+
+      '<span class="text-xs bg-mandi-50 text-mandi-700 px-2 py-1 rounded-full">'+m.vendor_count+' vendors</span></div>'+
+      '<p class="text-sm text-gray-500 mt-1">📍 '+(m.area?m.area+", ":"")+m.city+'</p>'+
+      '<p class="text-xs text-gray-400 mt-2">🕒 '+(m.opening_hours||"Open daily")+'</p>'+
+      '</div></a>';
+  }
+  function catChip(c){
+    const img = c.image_url || "";
+    const icon = img ? '<img src="'+img+'" onerror="imgFallback(this)" class="w-6 h-6 object-contain" />' : '<span>'+(c.icon||"🧺")+'</span>';
+    return '<a href="/compare/?category='+c.id+'" class="flex items-center gap-2 bg-white shadow-card rounded-full px-4 py-2 whitespace-nowrap hover:shadow-lift hover:text-mandi-700 transition">'+icon+'<span class="text-sm font-medium">'+c.name+'</span></a>';
+  }
+  function loadMarkets(q){
+    const path="/markets/"+(q?"?search="+encodeURIComponent(q):"");
+    MC.get(path).then(function(res){
+      const items=res.results||res;
+      $("#markets-grid").html(items.map(marketCard).join(""));
+      $("#markets-empty").toggleClass("hidden", items.length>0);
+    }).catch(function(xhr){ $("#markets-grid").html(""); toast(MC.errText(xhr),false); });
+  }
+  function loadCats(){ MC.get("/categories/?ordering=name").then(function(res){ $("#cat-strip").html((res.results||res).map(catChip).join("")); }); }
+  function loadStats(){
+    MC.get("/markets/").then(r=>$("#stat-markets").text((r.count!==undefined?r.count:(r.results||r).length)));
+    MC.get("/vendors/?is_verified=true").then(r=>$("#stat-vendors").text(r.count!==undefined?r.count:(r.results||r).length));
+    MC.get("/products/").then(r=>$("#stat-products").text(r.count!==undefined?r.count:(r.results||r).length));
+  }
+  $("#search-btn").on("click",()=>loadMarkets($("#city-search").val()));
+  $("#city-search").on("keypress",e=>{ if(e.which===13) loadMarkets($(this).val?$("#city-search").val():""); });
+  (function wait(){ window.MC?(loadMarkets(""),loadCats(),loadStats()):setTimeout(wait,30); })();
+});
+</script>
+{% endblock %}

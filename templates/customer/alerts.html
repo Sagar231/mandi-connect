@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Price alerts — MandiConnect{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-1">Price alerts</h1>
+  <p class="text-gray-500 text-sm mb-5">We'll email you when a product drops to your target price.</p>
+  <div class="bg-white rounded-2xl shadow-card p-4 mb-4 grid gap-3 sm:grid-cols-3">
+    <select id="product-sel" class="border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-mandi-500"></select>
+    <input id="threshold" type="number" step="0.01" placeholder="Notify when ≤ ₹" class="border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-mandi-500" />
+    <button id="add-alert" class="bg-mandi-600 text-white rounded-xl px-4 py-2.5 font-medium hover:bg-mandi-700">Create alert</button>
+  </div>
+  <button id="export-csv" class="mb-5 text-sm text-mandi-700 hover:underline">⬇ Email me a CSV price export</button>
+  <div id="alert-list" class="space-y-2"></div>
+  <p id="alert-empty" class="hidden text-gray-500 py-6">No alerts yet.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  function loadProducts(){ MC.get("/products/?ordering=name").then(r=>$("#product-sel").html((r.results||r).map(p=>'<option value="'+p.id+'">'+p.name+'</option>').join(""))); }
+  function load(){
+    if(!MC.isAuthed()){ location.href="/login/"; return; }
+    MC.get("/price-alerts/").then(function(res){
+      const items=res.results||res;
+      $("#alert-empty").toggleClass("hidden",items.length>0);
+      $("#alert-list").html(items.map(a=>'<div class="bg-white rounded-2xl shadow-card p-4 flex justify-between items-center"><span>'+(a.product_detail?a.product_detail.name:"Product")+' ≤ <b class="text-mandi-700">₹'+a.threshold+'</b></span><button data-id="'+a.id+'" class="del-alert text-sm text-red-600 hover:underline">Delete</button></div>').join(""));
+      $(".del-alert").on("click",function(){ MC.del("/price-alerts/"+$(this).data("id")+"/").then(()=>{ toast("Deleted."); load(); }); });
+    });
+  }
+  $("#add-alert").on("click",()=>MC.post("/price-alerts/",{product:$("#product-sel").val(),threshold:$("#threshold").val()}).then(()=>{ toast("Alert created."); $("#threshold").val(""); load(); }).catch(xhr=>toast(MC.errText(xhr),false)));
+  $("#export-csv").on("click",()=>MC.post("/price-alerts/export-csv/",{}).then(r=>toast(r.detail||"Export queued.")).catch(xhr=>toast(MC.errText(xhr),false)));
+  (function wait(){ if(!window.MC) return setTimeout(wait,30); loadProducts(); load(); })();
+});
+</script>
+{% endblock %}

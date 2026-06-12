@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Favorites — MandiConnect{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-5">Your favorites</h1>
+  <div id="fav-list" class="grid gap-3 sm:grid-cols-2"></div>
+  <p id="fav-empty" class="hidden text-gray-500 py-8">No favorites yet. Browse vendors and tap ♥.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  function load(){
+    if(!MC.isAuthed()){ location.href="/login/"; return; }
+    MC.get("/favorites/").then(function(res){
+      const items=res.results||res;
+      $("#fav-empty").toggleClass("hidden",items.length>0);
+      $("#fav-list").html(items.map(function(f){
+        const t=f.vendor_detail?f.vendor_detail.shop_name:(f.product_detail?f.product_detail.name:"Item");
+        const sub=f.vendor_detail?(f.vendor_detail.market_detail?f.vendor_detail.market_detail.name:""):"Product";
+        const link=f.vendor_detail?"/vendors/"+f.vendor+"/":"/compare/";
+        const img=f.vendor_detail?(f.vendor_detail.cover||""):(f.product_detail?f.product_detail.cover:"");
+        const ic=img?'<img src="'+img+'" onerror="imgFallback(this)" class="w-12 h-12 object-cover rounded-xl" />':'<div class="w-12 h-12 rounded-xl img-fallback"></div>';
+        return '<div class="bg-white rounded-2xl shadow-card p-4 flex items-center gap-3">'+ic+
+          '<a class="flex-1 font-medium hover:text-mandi-700" href="'+link+'">'+t+'<div class="text-xs text-gray-400">'+sub+'</div></a>'+
+          '<button data-id="'+f.id+'" class="del-fav text-sm text-red-600 hover:underline">Remove</button></div>';
+      }).join(""));
+      $(".del-fav").on("click",function(){ MC.del("/favorites/"+$(this).data("id")+"/").then(()=>{ toast("Removed."); load(); }); });
+    });
+  }
+  (function wait(){ window.MC?load():setTimeout(wait,30); })();
+});
+</script>
+{% endblock %}

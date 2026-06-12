@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Login — MandiConnect{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-12 grid lg:grid-cols-2 gap-10 items-center">
+  <div class="hidden lg:block rounded-3xl overflow-hidden relative h-96">
+    <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&q=80" onerror="imgFallback(this)" class="w-full h-full object-cover" />
+    <div class="absolute inset-0 bg-mandi-900/40"></div>
+  </div>
+  <div class="max-w-md w-full mx-auto bg-white rounded-2xl shadow-card p-8">
+    <h1 class="text-2xl font-bold mb-1">Welcome back</h1>
+    <p class="text-gray-500 text-sm mb-6">Log in — we'll take you to the right place.</p>
+    <form id="login-form" class="space-y-3">
+      <input id="email" type="email" placeholder="Email" required class="w-full border rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-mandi-500" />
+      <input id="password" type="password" placeholder="Password" required class="w-full border rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-mandi-500" />
+      <button class="w-full bg-mandi-600 text-white rounded-xl py-2.5 font-medium hover:bg-mandi-700">Log in</button>
+    </form>
+    <div class="flex justify-between text-sm mt-4 text-gray-500">
+      <a href="/register/" class="hover:text-mandi-700">Create customer account</a>
+      <a href="/reset-password/" class="hover:text-mandi-700">Forgot password?</a>
+    </div>
+    <div class="mt-4 pt-4 border-t text-sm text-gray-500">Want to sell? <a href="/sell/" class="text-mandi-700 font-medium hover:underline">Open a shop →</a></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  $("#login-form").on("submit",function(e){
+    e.preventDefault();
+    MC.login($("#email").val(),$("#password").val())
+      .then(function(res){ toast("Logged in."); setTimeout(()=>location.href=res.user.role==="vendor"?"/dashboard/":"/",400); })
+      .catch(function(xhr){ toast(MC.errText(xhr),false); });
+  });
+});
+</script>
+{% endblock %}

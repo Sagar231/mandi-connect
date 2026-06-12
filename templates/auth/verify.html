@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Verify email — MandiConnect{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16">
+  <div class="bg-white rounded-2xl shadow-card p-8 text-center">
+    <div class="text-4xl mb-3">📧</div>
+    <h1 class="text-2xl font-bold mb-3">Email verification</h1>
+    <p id="verify-msg" class="text-gray-600">Verifying…</p>
+    <a href="/login/" class="inline-block mt-5 px-5 py-2.5 bg-mandi-600 text-white rounded-xl hover:bg-mandi-700">Go to login</a>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$(function(){
+  const p=new URLSearchParams(location.search), uid=p.get("uid"), token=p.get("token");
+  (function wait(){ if(!window.MC) return setTimeout(wait,30);
+    if(!uid||!token){ $("#verify-msg").text("Invalid verification link."); return; }
+    MC.post("/auth/verify-email/",{uid:uid,token:token}).then(r=>$("#verify-msg").text(r.detail||"Email verified!")).catch(xhr=>$("#verify-msg").text(MC.errText(xhr)));
+  })();
+});
+</script>
+{% endblock %}
